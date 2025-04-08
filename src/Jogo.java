@@ -1,18 +1,15 @@
 import java.util.*;
 
 public class Jogo {
-    private Jogador jogador1;
-    private Jogador jogador2;
-    private Jogador jogador3;
-    private Jogador jogador4;
+    private Jogador jogador1, jogador2, jogador3, jogador4;
     private Baralho baralho;
     private Carta vira;
     private String manilhaValor;
     private Scanner scanner;
     private int valorRodada;
     private Jogador ultimoQuePediuTruco;
-    private int pontosTimeA = 0; 
-    private int pontosTimeB = 0; 
+    private List<Jogador> ordemJogadores;
+    private int pontosTimeA = 0, pontosTimeB = 0;
 
     public Jogo() {
         jogador1 = new Jogador("Jogador 1");
@@ -22,6 +19,7 @@ public class Jogo {
         baralho = new Baralho();
         scanner = new Scanner(System.in);
         valorRodada = 1;
+        ordemJogadores = new ArrayList<>(Arrays.asList(jogador1, jogador2, jogador3, jogador4));
     }
 
     public static void main(String[] args) {
@@ -38,27 +36,20 @@ public class Jogo {
         int vitoriasTimeB = 0;
 
         for (int rodada = 1; rodada <= 3; rodada++) {
-            System.out.println("\n----------- Rodada " + rodada + " -----------");
-            int vencedorRodada = jogarRodada();
-
-            if (vencedorRodada == 1) {
+            System.out.println("\n=========== Rodada " + rodada + " ===========");
+            Jogador vencedorRodada = jogarRodada();
+            int timeVencedor = timeDoJogador(vencedorRodada);
+            if (timeVencedor == 1) {
                 vitoriasTimeA++;
-                System.out.println("Time A venceu a rodada!");
-            } else if (vencedorRodada == 2) {
+                System.out.println(">>> Time A venceu a rodada!");
+            } else if (timeVencedor == 2) {
                 vitoriasTimeB++;
-                System.out.println("Time B venceu a rodada!");
+                System.out.println(">>> Time B venceu a rodada!");
             } else {
-                System.out.println("Rodada empatada!");
+                System.out.println(">>> Rodada empatada!");
             }
-
-            if (vitoriasTimeA == 2) {
-                pontosTimeA += valorRodada;
-                break;
-            }
-            if (vitoriasTimeB == 2) {
-                pontosTimeB += valorRodada; 
-                break;
-            }
+            atualizarOrdem(vencedorRodada);
+            if (vitoriasTimeA == 2 || vitoriasTimeB == 2) break;
         }
 
         anunciarVencedor(vitoriasTimeA, vitoriasTimeB);
@@ -93,46 +84,56 @@ public class Jogo {
         System.out.println("========================================\n");
     }
 
-    private int jogarRodada() {
-        valorRodada = 1; 
+    private Jogador jogarRodada() {
+        valorRodada = 1;
         ultimoQuePediuTruco = null;
-
         Map<Jogador, Carta> cartasJogadas = new LinkedHashMap<>();
 
-        cartasJogadas.put(jogador1, escolherCartaComTruco(jogador1, jogador2));
-        cartasJogadas.put(jogador2, escolherCartaComTruco(jogador2, jogador3));
-        cartasJogadas.put(jogador3, escolherCartaComTruco(jogador3, jogador4));
-        cartasJogadas.put(jogador4, escolherCartaComTruco(jogador4, jogador1));
+        for (int i = 0; i < ordemJogadores.size(); i++) {
+            Jogador jogadorAtual = ordemJogadores.get(i);
+            Jogador oponente = ordemJogadores.get((i + 1) % ordemJogadores.size());
+            cartasJogadas.put(jogadorAtual, escolherCartaComTruco(jogadorAtual, oponente));
+        }
 
-        System.out.println("\nCartas Jogadas:");
-        cartasJogadas.forEach((jogador, carta) -> System.out.println(jogador.getNome() + ": " + carta));
+        System.out.println("\n----------- Cartas jogadas nesta rodada -----------");
+        cartasJogadas.forEach((jogador, carta) ->
+            System.out.println(jogador.getNome() + " jogou: " + carta)
+        );
+        System.out.println("---------------------------------------------------");
 
         return determinarVencedorDuplas(cartasJogadas);
     }
 
+    private void atualizarOrdem(Jogador vencedor) {
+        int index = ordemJogadores.indexOf(vencedor);
+        if (index > 0) {
+            Collections.rotate(ordemJogadores, -index);
+        }
+        System.out.println("\n>>> Nova ordem de jogada para a próxima rodada:");
+        ordemJogadores.forEach(jogador -> System.out.print(jogador.getNome() + " "));
+        System.out.println();
+    }
+
     private Carta escolherCartaComTruco(Jogador jogadorAtual, Jogador oponente) {
+        System.out.println("\n========================================");
         System.out.println(jogadorAtual.getNome() + " - Suas cartas:");
         for (int i = 0; i < jogadorAtual.getMao().size(); i++) {
             System.out.println((i + 1) + ": " + jogadorAtual.getMao().get(i));
         }
+        System.out.println("========================================");
 
         if (valorRodada < 12 && jogadorAtual != ultimoQuePediuTruco) {
-            if (valorRodada == 1) {
-                System.out.print("Deseja pedir TRUCO? (S/N): ");
-            } else {
-                System.out.print("Deseja aumentar o TRUCO? (S/N): ");
-            }
-
+            String pergunta = (valorRodada == 1 ? "Deseja pedir TRUCO? (S/N): " : "Deseja aumentar o TRUCO? (S/N): ");
+            System.out.print(pergunta);
             String resposta = scanner.next().trim().toUpperCase();
 
             if (resposta.equals("S")) {
                 if (!resolverTruco(jogadorAtual, oponente)) {
                     System.out.println(oponente.getNome() + " correu! " + jogadorAtual.getNome() + " ganhou a rodada!");
-                    if (timeDoJogador(jogadorAtual) == 1) {
+                    if (timeDoJogador(jogadorAtual) == 1)
                         pontosTimeA += valorRodada;
-                    } else {
-                        pontosTimeB += valorRodada; 
-                    }
+                    else
+                        pontosTimeB += valorRodada;
                     anunciarPlacarFinal();
                     System.exit(0);
                 }
@@ -153,32 +154,28 @@ public class Jogo {
             scanner.nextLine();
         }
 
-        return jogadorAtual.jogarCarta(escolha - 1);
+        Carta cartaJogada = jogadorAtual.jogarCarta(escolha - 1);
+        System.out.println(">>> " + jogadorAtual.getNome() + " jogou: " + cartaJogada + "\n");
+        return cartaJogada;
     }
 
     private boolean resolverTruco(Jogador quemPediu, Jogador quemResponde) {
-        System.out.println("========================================");
-        System.out.println(quemResponde.getNome() + ", " + quemPediu.getNome() + " pediu TRUCO!");
+        System.out.println("\n" + quemResponde.getNome() + ", " + quemPediu.getNome() + " pediu TRUCO!");
 
-        if (valorRodada < 12) {
-            System.out.println("========================================");
-            System.out.println("1 - Correr (perder a rodada)");
-            System.out.println("2 - Aceitar (rodada vale " + (valorRodada == 1 ? 3 : valorRodada) + " pontos)");
-            System.out.println("3 - Aumentar (" + proximoValorTruco() + " pontos)");
-            System.out.println("========================================");
-        } else {
-            System.out.println("========================================");
-            System.out.println("1 - Correr (perder a rodada)");
-            System.out.println("2 - Aceitar (rodada vale 12 pontos)");
-            System.out.println("========================================");
-        }
+        System.out.println("\n========================================");
+        System.out.println("Escolha uma opção:");
+        System.out.println("1 - Correr (perder a rodada)");
+        System.out.println("2 - Aceitar (rodada vale " + (valorRodada == 1 ? 3 : valorRodada) + " pontos)");
+        if (valorRodada < 12) System.out.println("3 - Aumentar (" + proximoValorTruco() + " pontos)");
+        System.out.println("========================================");
 
         int resposta;
         while (true) {
             System.out.print("Escolha (1-" + (valorRodada < 12 ? "3" : "2") + "): ");
             if (scanner.hasNextInt()) {
                 resposta = scanner.nextInt();
-                if ((valorRodada < 12 && resposta >= 1 && resposta <= 3) || (valorRodada == 12 && (resposta == 1 || resposta == 2))) {
+                if ((valorRodada < 12 && resposta >= 1 && resposta <= 3)
+                        || (valorRodada == 12 && (resposta == 1 || resposta == 2))) {
                     break;
                 }
             }
@@ -186,12 +183,10 @@ public class Jogo {
             scanner.nextLine();
         }
 
-        if (resposta == 1) {
-            return false; 
-        } else if (resposta == 2) {
-            if (valorRodada == 1) {
+        if (resposta == 1) return false;
+        else if (resposta == 2) {
+            if (valorRodada == 1)
                 valorRodada = 3;
-            }
             return true;
         } else {
             valorRodada = proximoValorTruco();
@@ -206,57 +201,27 @@ public class Jogo {
         return 12;
     }
 
-    private int determinarVencedorDuplas(Map<Jogador, Carta> cartasJogadas) {
+    private Jogador determinarVencedorDuplas(Map<Jogador, Carta> cartasJogadas) {
         Jogador vencedor = cartasJogadas.entrySet()
             .stream()
-            .max(Comparator.comparingInt(entry -> calcularPoder(entry.getValue())))
+            .max(Comparator.comparingInt(entry -> entry.getValue().calcularPoder(manilhaValor)))
             .get()
             .getKey();
-
-        int time = timeDoJogador(vencedor);
-        return time;
-    }
-
-    private int calcularPoder(Carta carta) {
-        Map<String, Integer> ordem = new HashMap<>();
-        ordem.put("4", 1);
-        ordem.put("5", 2);
-        ordem.put("6", 3);
-        ordem.put("7", 4);
-        ordem.put("Q", 5);
-        ordem.put("J", 6);
-        ordem.put("K", 7);
-        ordem.put("A", 8);
-        ordem.put("2", 9);
-        ordem.put("3", 10);
-
-        if (carta.getValor().equals(manilhaValor)) {
-            switch (carta.getNaipe()) {
-                case "Ouros": return 11;
-                case "Espadas": return 12;
-                case "Copas": return 13;
-                case "Paus": return 14;
-            }
-        }
-        return ordem.getOrDefault(carta.getValor(), 0);
+        return vencedor;
     }
 
     private int timeDoJogador(Jogador jogador) {
-        if (jogador == jogador1 || jogador == jogador3) {
-            return 1;
-        } else {
-            return 2; 
-        }
+        return (jogador == jogador1 || jogador == jogador3) ? 1 : 2;
     }
 
     private void anunciarVencedor(int vitoriasTimeA, int vitoriasTimeB) {
         System.out.println("\n========================================");
         if (vitoriasTimeA > vitoriasTimeB) {
-            System.out.println("Time A venceu o jogo!");
+            System.out.println(">>> Time A venceu o jogo!");
         } else if (vitoriasTimeB > vitoriasTimeA) {
-            System.out.println("Time B venceu o jogo!");
+            System.out.println(">>> Time B venceu o jogo!");
         } else {
-            System.out.println("O jogo terminou empatado!");
+            System.out.println(">>> O jogo terminou empatado!");
         }
         anunciarPlacarFinal();
     }
@@ -266,5 +231,6 @@ public class Jogo {
         System.out.println("Placar Final:");
         System.out.println("Time A: " + pontosTimeA + " ponto(s)");
         System.out.println("Time B: " + pontosTimeB + " ponto(s)");
+        System.out.println("========================================");
     }
 }
