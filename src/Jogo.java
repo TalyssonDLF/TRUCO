@@ -11,6 +11,8 @@ public class Jogo {
     private Scanner scanner;
     private int valorRodada;
     private Jogador ultimoQuePediuTruco;
+    private int pontosTimeA = 0; 
+    private int pontosTimeB = 0; 
 
     public Jogo() {
         jogador1 = new Jogador("Jogador 1");
@@ -49,7 +51,12 @@ public class Jogo {
                 System.out.println("Rodada empatada!");
             }
 
-            if (vitoriasTimeA == 2 || vitoriasTimeB == 2) {
+            if (vitoriasTimeA == 2) {
+                pontosTimeA += valorRodada;
+                break;
+            }
+            if (vitoriasTimeB == 2) {
+                pontosTimeB += valorRodada; 
                 break;
             }
         }
@@ -87,7 +94,7 @@ public class Jogo {
     }
 
     private int jogarRodada() {
-        valorRodada = 1; // Cada rodada começa valendo 1 ponto
+        valorRodada = 1; 
         ultimoQuePediuTruco = null;
 
         Map<Jogador, Carta> cartasJogadas = new LinkedHashMap<>();
@@ -122,11 +129,9 @@ public class Jogo {
                 if (!resolverTruco(jogadorAtual, oponente)) {
                     System.out.println(oponente.getNome() + " correu! " + jogadorAtual.getNome() + " ganhou a rodada!");
                     if (timeDoJogador(jogadorAtual) == 1) {
-                        jogador1.adicionarPonto();
-                        jogador3.adicionarPonto();
+                        pontosTimeA += valorRodada;
                     } else {
-                        jogador2.adicionarPonto();
-                        jogador4.adicionarPonto();
+                        pontosTimeB += valorRodada; 
                     }
                     anunciarPlacarFinal();
                     System.exit(0);
@@ -152,15 +157,20 @@ public class Jogo {
     }
 
     private boolean resolverTruco(Jogador quemPediu, Jogador quemResponde) {
+        System.out.println("========================================");
         System.out.println(quemResponde.getNome() + ", " + quemPediu.getNome() + " pediu TRUCO!");
 
         if (valorRodada < 12) {
+            System.out.println("========================================");
             System.out.println("1 - Correr (perder a rodada)");
             System.out.println("2 - Aceitar (rodada vale " + (valorRodada == 1 ? 3 : valorRodada) + " pontos)");
             System.out.println("3 - Aumentar (" + proximoValorTruco() + " pontos)");
+            System.out.println("========================================");
         } else {
+            System.out.println("========================================");
             System.out.println("1 - Correr (perder a rodada)");
             System.out.println("2 - Aceitar (rodada vale 12 pontos)");
+            System.out.println("========================================");
         }
 
         int resposta;
@@ -177,13 +187,13 @@ public class Jogo {
         }
 
         if (resposta == 1) {
-            return false; // Correr
+            return false; 
         } else if (resposta == 2) {
             if (valorRodada == 1) {
                 valorRodada = 3;
             }
-            return true; // Aceitar
-        } else { // resposta == 3
+            return true;
+        } else {
             valorRodada = proximoValorTruco();
             return resolverTruco(quemResponde, quemPediu);
         }
@@ -233,9 +243,9 @@ public class Jogo {
 
     private int timeDoJogador(Jogador jogador) {
         if (jogador == jogador1 || jogador == jogador3) {
-            return 1; // Time A
+            return 1;
         } else {
-            return 2; // Time B
+            return 2; 
         }
     }
 
@@ -254,9 +264,7 @@ public class Jogo {
     private void anunciarPlacarFinal() {
         System.out.println("========================================\n");
         System.out.println("Placar Final:");
-        System.out.println("Jogador 1: " + jogador1.getPontos() + " ponto(s)");
-        System.out.println("Jogador 2: " + jogador2.getPontos() + " ponto(s)");
-        System.out.println("Jogador 3: " + jogador3.getPontos() + " ponto(s)");
-        System.out.println("Jogador 4: " + jogador4.getPontos() + " ponto(s)");
+        System.out.println("Time A: " + pontosTimeA + " ponto(s)");
+        System.out.println("Time B: " + pontosTimeB + " ponto(s)");
     }
 }
